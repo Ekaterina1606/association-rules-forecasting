@@ -64,24 +64,24 @@ The repository includes an interactive web application that allows:
 ## Application Interface
 
 ### Main Screen
-![Main](screenshots/interface.png)
+![Main](interface.png)
 
 ### Time Series Visualization
-![Chart](screenshots/chart.png)
+![Chart](chart.png)
 
 ### Prediction Metrics
-![Metrics](screenshots/metrics.png)
+![Metrics](metrics.png)
 
 ### Trading Signal
-![Signal](screenshots/recommendation.png)
+![Signal](recommendation.png)
 
 ### Association Rules
-![Rules](screenshots/rules.png)
+![Rules](rules.png)
 
 ## System Design
 
 ### Use Case Diagram
-![Use Case Diagram](screenshots/uml_use_case.png)
+![Use Case Diagram](uml_use_case.png)
 
 ---
 
