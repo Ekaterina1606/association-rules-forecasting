@@ -1,11 +1,7 @@
-# app.py
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-# =======================
-# Проверка SciPy
-# =======================
 try:
     from scipy import sparse
     from scipy.sparse.linalg import spsolve
@@ -17,9 +13,7 @@ except Exception as e:
     st.info("Решение: установите scipy (pip install scipy) или добавьте scipy в requirements.txt.")
     st.stop()
 
-# =======================
-# ДЕФОЛТЫ (UI)
-# =======================
+
 DEFAULTS = {
     "sep": ";",
     "alphabet_size": 7,
@@ -28,15 +22,11 @@ DEFAULTS = {
     "forecast_days": 10,
 }
 
-# =======================
-# ВНУТРЕННИЕ ПАРАМЕТРЫ
-# =======================
 LAMBDA_HP = 14400
 MA_WINDOW = 10
 INTERNAL_WINDOW = 252
 PROB_THRESHOLD = 0.5
 HOLD_RET_THRESHOLD = 0.05
-
 
 STRICTNESS_PRESETS = {
     "Мягко": {"min_support": 0.005, "min_confidence": 0.10, "min_count": 2},
@@ -56,15 +46,12 @@ def reset_to_defaults():
         st.session_state[k] = v
 
 
-# =======================
-# CORE
-# =======================
 def hp_filter(y, lam):
     n = len(y)
     e = np.ones(n)
-    D = sparse.diags([e, -2 * e, e], [0, 1, 2], shape=(n - 2, n), format="csc")
-    A = sparse.eye(n, format="csc") + lam * (D.T @ D)
-    trend = spsolve(A, y)
+    d = sparse.diags([e, -2 * e, e], [0, 1, 2], shape=(n - 2, n), format="csc")
+    a = sparse.eye(n, format="csc") + lam * (d.T @ d)
+    trend = spsolve(a, y)
     cycle = y - trend
     return trend, cycle
 
@@ -79,10 +66,10 @@ def rules_from_sax_k(sax, k=3):
     if len(sax) <= k:
         return pd.DataFrame(columns=["rule", "a", "b", "count", "support", "confidence", "lift"])
 
-    A = ["".join(sax[i - k:i]) for i in range(k, len(sax))]
-    B = [sax[i] for i in range(k, len(sax))]
+    a_values = ["".join(sax[i - k:i]) for i in range(k, len(sax))]
+    b_values = [sax[i] for i in range(k, len(sax))]
 
-    df = pd.DataFrame({"a": A, "b": B})
+    df = pd.DataFrame({"a": a_values, "b": b_values})
     df["rule"] = df["a"] + "->" + df["b"]
 
     total = len(df)
@@ -99,7 +86,6 @@ def rules_from_sax_k(sax, k=3):
     rules["b"] = rules["rule"].str.split("->").str[1]
 
     rules["confidence"] = rules.apply(lambda r: r["count"] / a_counts[r["a"]], axis=1)
-
     rules["lift"] = rules.apply(
         lambda r: r["support"] / ((a_counts[r["a"]] / total) * (b_counts[r["b"]] / total)),
         axis=1,
@@ -110,7 +96,6 @@ def rules_from_sax_k(sax, k=3):
 def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Приводит названия колонок к стандартным begin / close.
-    Поддерживает популярные варианты из Yahoo / Investing и др.
     """
     df = df.copy()
 
@@ -137,8 +122,6 @@ def parse_close_series(series: pd.Series) -> pd.Series:
     - 1 234.56
     """
     s = series.astype(str).str.strip()
-
-    # убираем неразрывные пробелы и обычные пробелы
     s = s.str.replace("\u00A0", "", regex=False)
     s = s.str.replace(" ", "", regex=False)
 
@@ -148,30 +131,21 @@ def parse_close_series(series: pd.Series) -> pd.Series:
         if x == "" or x.lower() in {"nan", "none", "null"}:
             return ""
 
-        # если есть и запятая, и точка:
-        # считаем, что последний символ-разделитель дробной части определяет формат
         if "," in x and "." in x:
             if x.rfind(",") > x.rfind("."):
-                # формат типа 1.234,56 -> убрать точки, запятую заменить на точку
                 x = x.replace(".", "")
                 x = x.replace(",", ".")
             else:
-                # формат типа 1,234.56 -> убрать запятые
                 x = x.replace(",", "")
             return x
 
-        # если есть только запятая
         if "," in x:
-            # одна запятая и справа 1-2 цифры -> вероятно десятичная
             if x.count(",") == 1:
                 left, right = x.split(",")
                 if right.isdigit() and 1 <= len(right) <= 3:
                     return left + "." + right
-
-            # иначе считаем запятую разделителем тысяч
             return x.replace(",", "")
 
-        # если только точки — оставляем как есть
         return x
 
     s = s.apply(normalize_number)
@@ -180,12 +154,12 @@ def parse_close_series(series: pd.Series) -> pd.Series:
 
 def read_uploaded_csv(uploaded_file, user_sep: str) -> pd.DataFrame:
     """
-    Умеет читать CSV с разделителем ; или ,.
+    Читает CSV с разделителем ; , или tab.
     Сначала пробует разделитель, указанный пользователем,
     затем пытается подобрать автоматически.
     """
     uploaded_file.seek(0)
-    raw_bytes = uploaded_file.read()
+    uploaded_file.read()
     uploaded_file.seek(0)
 
     candidate_seps = []
@@ -210,8 +184,6 @@ def read_uploaded_csv(uploaded_file, user_sep: str) -> pd.DataFrame:
                 score += 1
             if "close" in cols:
                 score += 1
-
-            # если файл не распарсился и всё ушло в 1 колонку — это плохой вариант
             if df_try.shape[1] > 1:
                 score += 1
 
@@ -236,11 +208,7 @@ def preprocess_df(df: pd.DataFrame, window_min: int, forecast_days: int) -> pd.D
         raise ValueError(f"В файле не хватает столбцов: {', '.join(sorted(missing))}")
 
     df = df.copy()
-
-    # гибкий разбор даты
     df["begin"] = pd.to_datetime(df["begin"], errors="coerce", dayfirst=False)
-
-    # гибкий разбор цены
     df["close"] = parse_close_series(df["close"])
 
     df = df.dropna(subset=["begin", "close"]).sort_values("begin").reset_index(drop=True)
@@ -267,11 +235,11 @@ def add_rule_stats(df_window: pd.DataFrame, sax: np.ndarray, rules: pd.DataFrame
     rets_next = df_window["ret_fwd"].values
     idx = np.arange(k, len(sax))
 
-    A = ["".join(sax[i - k:i]) for i in idx]
-    B = [sax[i] for i in idx]
-    R = [rets_next[i] for i in idx]
+    a_values = ["".join(sax[i - k:i]) for i in idx]
+    b_values = [sax[i] for i in idx]
+    returns = [rets_next[i] for i in idx]
 
-    trans = pd.DataFrame({"a": A, "b": B, "ret": R})
+    trans = pd.DataFrame({"a": a_values, "b": b_values, "ret": returns})
     trans["rule"] = trans["a"] + "->" + trans["b"]
 
     stats = trans.groupby("rule")["ret"].agg(
@@ -294,10 +262,8 @@ def decide_action(row) -> str:
 
     if (p_up >= th) and (exp_ret > 0):
         return "BUY"
-
     if (p_down >= th) and (exp_ret < 0):
         return "SELL"
-
     return "HOLD"
 
 
@@ -414,9 +380,6 @@ def render_action_badge(action: str):
         st.info("HOLD (ничего не делать)")
 
 
-# =======================
-# UI
-# =======================
 st.set_page_config(page_title="Ассоциативные правила + прогноз", layout="wide")
 init_state()
 
@@ -557,7 +520,7 @@ try:
         elif action == "SELL":
             correct = 1 if actual_ret < 0 else 0
             strategy_ret = -actual_ret
-        else:  # HOLD
+        else:
             correct = 1 if abs(actual_ret) <= HOLD_RET_THRESHOLD else 0
             strategy_ret = 0.0
 
@@ -570,8 +533,6 @@ try:
 
     res_df = pd.DataFrame(results)
 
-    # статистика
-    # статистика
     buy_df = res_df[res_df["action"] == "BUY"]
     sell_df = res_df[res_df["action"] == "SELL"]
     hold_df = res_df[res_df["action"] == "HOLD"]
@@ -580,37 +541,25 @@ try:
     n_buy = int((res_df["action"] == "BUY").sum()) if not res_df.empty else 0
     n_sell = int((res_df["action"] == "SELL").sum()) if not res_df.empty else 0
     n_hold = int((res_df["action"] == "HOLD").sum()) if not res_df.empty else 0
-
-    # N_correct теперь включает корректные BUY, SELL и HOLD
     n_correct = int(res_df["correct"].sum()) if not res_df.empty else 0
 
     buy_acc = buy_df["correct"].mean() if not buy_df.empty else np.nan
     sell_acc = sell_df["correct"].mean() if not sell_df.empty else np.nan
     hold_acc = hold_df["correct"].mean() if not hold_df.empty else np.nan
 
-    # Точность только по направленным сигналам BUY/SELL
-    accuracy_dir = (
-        tradable_df["correct"].mean()
-        if not tradable_df.empty else np.nan
-    )
-
-    # Общая точность с учетом HOLD:
-    # Accuracy_all = N_correct / (N_BUY + N_SELL + N_HOLD)
+    accuracy_dir = tradable_df["correct"].mean() if not tradable_df.empty else np.nan
     accuracy_all = (
         n_correct / (n_buy + n_sell + n_hold)
         if (n_buy + n_sell + n_hold) > 0 else np.nan
     )
 
     hold_ratio = (res_df["action"] == "HOLD").mean() if not res_df.empty else np.nan
-
     avg_strategy_ret = res_df["strategy_ret"].mean() if not res_df.empty else np.nan
     cum_strategy_ret = (1 + res_df["strategy_ret"]).prod() - 1 if not res_df.empty else np.nan
 
     avg_buy_ret = buy_df["ret"].mean() if not buy_df.empty else np.nan
     avg_sell_ret = sell_df["ret"].mean() if not sell_df.empty else np.nan
 
-
-    # ===== Метрики точности =====
     col1, col2 = st.columns(2)
     col1.metric(
         "Точность прогнозов BUY",
@@ -631,7 +580,6 @@ try:
         f"{accuracy_all:.3f}" if pd.notna(accuracy_all) else "—"
     )
 
-
     col5, col6 = st.columns(2)
     col5.metric(
         "Доля сигналов HOLD",
@@ -642,40 +590,25 @@ try:
         f"{avg_strategy_ret * 100:.2f}%" if pd.notna(avg_strategy_ret) else "—"
     )
 
-    # распределение сигналов
     st.subheader("Распределение сигналов")
     import matplotlib.pyplot as plt
 
     counts = res_df["action"].value_counts()
-
-    # фиксируем порядок + убираем NaN
     order = ["BUY", "HOLD", "SELL"]
     counts = counts.reindex(order).fillna(0)
 
     fig, ax = plt.subplots(figsize=(9, 6))
-
     ax.bar(counts.index, counts.values, color="#1f77b4", width=0.5)
-
-    # подписи осей (крупные)
     ax.set_xlabel("Тип сигнала", fontsize=19)
     ax.set_ylabel("Количество сигналов", fontsize=19)
-
-    # подписи делений
     ax.tick_params(axis="x", labelsize=15)
     ax.tick_params(axis="y", labelsize=14)
-
-    # сетка
     ax.grid(axis="y", linestyle="--", alpha=0.4)
-
-    # убираем лишние рамки
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-
     plt.tight_layout()
 
-    # центрируем график
     col1, col2, col3 = st.columns([1, 3.5, 1])
-
     with col2:
         st.pyplot(fig, use_container_width=False)
 
