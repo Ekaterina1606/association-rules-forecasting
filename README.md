@@ -1,7 +1,5 @@
 # Financial Time Series Forecasting using SAX and Association Rules
 
-This project implements a method for forecasting financial time series using SAX (Symbolic Aggregate approXimation) and association rules.
-
 The approach focuses on discovering recurring patterns in price dynamics and transforming them into interpretable trading signals: BUY, SELL, or HOLD.
 
 The model converts a time series into a symbolic representation and extracts association rules that capture underlying patterns in the data.
@@ -36,6 +34,8 @@ The method combines signal processing and symbolic representation techniques:
    * expected return
    * rule strength
 
+The method is evaluated using walk-forward validation and demonstrates consistent predictive performance across different market conditions.
+
 ---
 
 ## Use Cases
@@ -45,6 +45,7 @@ The method can be applied in the following scenarios:
 * financial market analysis
 * algorithmic trading research
 * time series pattern discovery
+* exploratory analysis of non-stationary data
 
 ---
 
