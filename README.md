@@ -6,6 +6,16 @@ The model converts a time series into a symbolic representation and extracts ass
 
 ---
 
+## Motivation
+
+Forecasting financial time series remains a challenging task due to noise, non-stationarity, and changing market regimes.
+
+While many modern approaches rely on statistical models or machine learning, this project investigates whether symbolic representations of market behavior can reveal recurring patterns useful for forecasting future price movements.
+
+The proposed method combines SAX discretization and association rule mining to transform historical price dynamics into interpretable trading signals.
+
+---
+
 ## Description
 
 The method combines signal processing and symbolic representation techniques:
@@ -37,6 +47,76 @@ The method combines signal processing and symbolic representation techniques:
 The method is evaluated using walk-forward validation and demonstrates consistent predictive performance across different market conditions.
 
 ---
+
+## Methodology
+
+The forecasting pipeline consists of the following stages:
+
+### 1. Trend-Cycle Decomposition
+
+The original financial time series is processed using the Hodrick–Prescott (HP) filter to isolate the cyclical component and reduce the influence of long-term trends.
+
+### 2. Signal Smoothing
+
+A moving average is applied to reduce short-term fluctuations and suppress market noise.
+
+### 3. Symbolic Representation
+
+The processed series is normalized and transformed into a Symbolic Aggregate approXimation (SAX) representation. Continuous numerical values are converted into discrete symbols, allowing the time series to be analyzed as a sequence of patterns.
+
+### 4. Association Rule Mining
+
+Sliding symbolic windows are used to generate association rules of the form:
+
+```text
+ABCDE → F
+```
+
+Each rule represents a recurring relationship between historical patterns and subsequent market behavior.
+
+### 5. Rule Evaluation
+
+For every extracted rule, the following statistical measures are calculated:
+
+- support
+- confidence
+- lift
+- expected return
+- probability of upward movement
+- probability of downward movement
+
+### 6. Signal Generation
+
+Trading recommendations (BUY, SELL, or HOLD) are generated using a combination of:
+
+- rule confidence
+- expected return
+- probability thresholds
+- rule strength metrics
+
+### 7. Walk-Forward Validation
+
+Model performance is evaluated using walk-forward validation, ensuring that only historical information is available during each prediction step and preventing data leakage.
+
+### Forecasting Pipeline
+
+```text
+Financial Time Series
+          ↓
+      HP Filter
+          ↓
+   Moving Average
+          ↓
+    Normalization
+          ↓
+ SAX Representation
+          ↓
+Association Rules
+          ↓
+ Signal Generation
+          ↓
+Walk-Forward Validation
+```
 
 ## Use Cases
 
