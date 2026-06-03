@@ -118,29 +118,6 @@ Association Rules
 Walk-Forward Validation
 ```
 
-## Use Cases
-
-The method can be applied in the following scenarios:
-
-* financial market analysis
-* algorithmic trading research
-* time series pattern discovery
-* exploratory analysis of non-stationary data
-
----
-
-## Functionality
-
-The project includes:
-
-* preprocessing of financial time series
-* SAX discretization
-* extraction of association rules
-* walk-forward validation without data leakage
-* generation of trading signals
-* evaluation of prediction accuracy
-* calculation of strategy returns
-
 ---
 
 ## Experimental Results
@@ -203,7 +180,7 @@ For GSK, the highest directional accuracy (0.833) was obtained for k = 8 and H =
 
 For Cipla, the proposed method demonstrated substantially weaker predictive performance compared to the other evaluated assets. Although longer forecasting horizons improved directional accuracy, the model generated a very high proportion of HOLD signals, indicating limited confidence in actionable predictions for this stock.
 
-### Summary of Best Configurations
+### Summary of Best Directional Accuracy Configurations
 
 | Company | k | H | Directional Accuracy | Overall Accuracy | Average Return (%) |
 |----------|---|---|---------------------|------------------|--------------------|
@@ -324,7 +301,7 @@ streamlit run app.py
 
 ## Notes
 
-* The application interface is in Russian
+* The application interface is in English
 * The method can be applied to different types of time series
 * The project demonstrates an experimental approach to time series forecasting based on symbolic representation and pattern mining
 
