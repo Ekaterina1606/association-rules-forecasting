@@ -16,6 +16,14 @@ The proposed method combines SAX discretization and association rule mining to t
 
 ---
 
+## Live Demo
+
+Try the application online:
+
+https://aappciation-rules-forecasting-24o6pfr8qmtezadbukxdp8.streamlit.app/
+
+---
+
 ## Description
 
 The method combines signal processing and symbolic representation techniques:
