@@ -217,6 +217,19 @@ These rules indicate recurring symbolic patterns in historical price behavior. H
 
 ---
 
+## Example Datasets
+
+Sample datasets used in the experiments are available in the `data/` directory.
+
+- Yandex.csv
+- Apple.csv
+- GSK.csv
+- Cipla.csv
+
+These datasets can be used to reproduce the results presented in the Experimental Results section.
+
+---
+
 ## Streamlit Application
 
 The repository includes an interactive web application that allows:
@@ -258,15 +271,27 @@ Use case diagram illustrating the functionality of the web application.
 
 ## Project Structure
 
-```
+```text
 .
+├── data/
+│   ├── Apple.csv
+│   ├── Cipla.csv
+│   ├── GSK.csv
+│   └── Yandex.csv
+├── screenshots/
+│   ├── interface.png
+│   ├── chart.png
+│   ├── metrics.png
+│   ├── recommendation.png
+│   ├── rules.png
+│   └── uml.png
 ├── app.py
 ├── main.py
 ├── elbow_method.py
-├── README.md
+├── requirements.txt
+├── .gitignore
+└── README.md
 ```
-
----
 
 ## Installation
 
