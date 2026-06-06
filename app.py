@@ -7,10 +7,10 @@ try:
     from scipy.sparse.linalg import spsolve
     from scipy.stats import norm
 except Exception as e:
-    st.set_page_config(page_title="Ошибка зависимостей", layout="wide")
-    st.error("Не установлен пакет scipy — из-за этого приложение не может запуститься.")
+    st.set_page_config(page_title="Dependency Error", layout="wide")
+    st.error("The scipy package is not installed, so the application cannot start.")
     st.code(str(e))
-    st.info("Решение: установите scipy (pip install scipy) или добавьте scipy в requirements.txt.")
+    st.info("Solution: install scipy (pip install scipy) or add scipy to requirements.txt.")
     st.stop()
 
 
@@ -18,7 +18,7 @@ DEFAULTS = {
     "sep": ";",
     "alphabet_size": 7,
     "k": 5,
-    "mode": "Нормально",
+    "mode": "Standard",
     "forecast_days": 10,
 }
 
@@ -29,9 +29,9 @@ PROB_THRESHOLD = 0.5
 HOLD_RET_THRESHOLD = 0.05
 
 STRICTNESS_PRESETS = {
-    "Мягко": {"min_support": 0.005, "min_confidence": 0.10, "min_count": 2},
-    "Нормально": {"min_support": 0.0125, "min_confidence": 0.14, "min_count": 3},
-    "Строго": {"min_support": 0.02, "min_confidence": 0.20, "min_count": 5},
+    "Relaxed": {"min_support": 0.005, "min_confidence": 0.10, "min_count": 2},
+    "Standard": {"min_support": 0.0125, "min_confidence": 0.14, "min_count": 3},
+    "Strict": {"min_support": 0.02, "min_confidence": 0.20, "min_count": 5},
 }
 
 
@@ -95,7 +95,7 @@ def rules_from_sax_k(sax, k=3):
 
 def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Приводит названия колонок к стандартным begin / close.
+    Normalizes column names to standard begin / close.
     """
     df = df.copy()
 
@@ -113,8 +113,8 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 def parse_close_series(series: pd.Series) -> pd.Series:
     """
-    Гибко преобразует цены в числа.
-    Поддерживает варианты:
+    Flexibly converts prices to numeric values.
+    Supported formats:
     - 1234.56
     - 1,234.56
     - 1234,56
@@ -154,9 +154,9 @@ def parse_close_series(series: pd.Series) -> pd.Series:
 
 def read_uploaded_csv(uploaded_file, user_sep: str) -> pd.DataFrame:
     """
-    Читает CSV с разделителем ; , или tab.
-    Сначала пробует разделитель, указанный пользователем,
-    затем пытается подобрать автоматически.
+    Reads CSV files with comma, semicolon, or tab separators.
+    First tries the user-specified separator,
+    then attempts to detect the separator automatically.
     """
     uploaded_file.seek(0)
     uploaded_file.read()
@@ -194,7 +194,7 @@ def read_uploaded_csv(uploaded_file, user_sep: str) -> pd.DataFrame:
             continue
 
     if best_df is None:
-        raise ValueError("Не удалось прочитать CSV-файл. Проверьте разделитель и формат файла.")
+        raise ValueError("Could not read the CSV file. Please check the separator and file format.")
 
     return best_df
 
@@ -205,7 +205,7 @@ def preprocess_df(df: pd.DataFrame, window_min: int, forecast_days: int) -> pd.D
     needed = {"begin", "close"}
     missing = needed - set(df.columns)
     if missing:
-        raise ValueError(f"В файле не хватает столбцов: {', '.join(sorted(missing))}")
+        raise ValueError(f"The file is missing required columns: {', '.join(sorted(missing))}")
 
     df = df.copy()
     df["begin"] = pd.to_datetime(df["begin"], errors="coerce", dayfirst=False)
@@ -223,9 +223,9 @@ def preprocess_df(df: pd.DataFrame, window_min: int, forecast_days: int) -> pd.D
 
     if len(df) < window_min:
         raise ValueError(
-            f"Слишком мало данных после предобработки.\n"
-            f"Нужно хотя бы ~{window_min} строк, а получилось {len(df)}.\n"
-            f"Попробуйте уменьшить 'Прогноз на сколько дней вперёд' или загрузить файл с более длинной историей."
+            f"Not enough data after preprocessing.\n"
+            f"At least ~{window_min} rows are required, but only {len(df)} rows are available.\n"
+            f"Try reducing the forecast horizon or upload a file with a longer history."
         )
 
     return df
@@ -373,14 +373,14 @@ def predict_next_action(df, window, alphabet_size, k, min_support, min_confidenc
 
 def render_action_badge(action: str):
     if action == "BUY":
-        st.success("BUY (покупать)")
+        st.success("BUY")
     elif action == "SELL":
-        st.warning("SELL (продавать)")
+        st.warning("SELL")
     else:
-        st.info("HOLD (ничего не делать)")
+        st.info("HOLD")
 
 
-st.set_page_config(page_title="Ассоциативные правила + прогноз", layout="wide")
+st.set_page_config(page_title="Association Rules Forecasting", layout="wide")
 init_state()
 
 st.markdown("""
@@ -390,72 +390,72 @@ st.markdown("""
     margin-bottom: 10px;
     line-height: 1.3;
 ">
-Ассоциативные правила (SAX) и прогноз BUY/HOLD/SELL
+Association Rules (SAX) and BUY/HOLD/SELL Forecasting
 </h1>
 """, unsafe_allow_html=True)
 
 with st.sidebar:
-    st.header("Настройки")
+    st.header("Settings")
 
     st.selectbox(
-        "Режим отбора правил",
-        options=["Мягко", "Нормально", "Строго"],
+        "Rule Selection Mode",
+        options=["Relaxed", "Standard", "Strict"],
         key="mode",
-        help="Нормально — рекомендуемый режим. Мягко — больше сигналов, но больше шума. Строго — меньше сигналов, но надёжнее.",
+        help="Standard is the recommended mode. Relaxed generates more signals but may add noise. Strict generates fewer but more reliable signals.",
     )
 
     st.slider(
-        "Горизонт прогнозирования (H)",
+        "Forecast Horizon (H)",
         min_value=1,
         max_value=30,
         step=1,
         key="forecast_days",
         help=(
-            "Определяет количество торговых дней, на которое формируется прогноз. "
-            "H = 1 соответствует прогнозу на следующий торговый день. "
-            "Увеличение значения H расширяет горизонт удержания позиции."
+            "Defines the number of trading days used as the forecast horizon. "
+            "H = 1 corresponds to forecasting the next trading day. "
+            "Increasing H extends the expected holding period."
         ),
     )
 
     st.slider(
-        "Размер окна SAX (k)",
+        "SAX Window Size (k)",
         min_value=2,
         max_value=10,
         step=1,
         key="k",
         help=(
-            "Параметр k задаёт длину подпоследовательности временного ряда, "
-            "которая дискретизируется методом SAX и представляется "
-            "в виде символьной последовательности."
+            "The k parameter defines the length of the time-series subsequence "
+            "that is discretized using SAX and represented "
+            "as a symbolic sequence."
         )
     )
 
     st.slider(
-        "Размер алфавита SAX (S)",
+        "SAX Alphabet Size (S)",
         min_value=3,
         max_value=12,
         step=1,
         key="alphabet_size",
         help=(
-            "Параметр S задаёт количество символов, используемых для "
-            "дискретизации временного ряда. "
-            "Увеличение S повышает детализацию представления, "
-            "уменьшение — приводит к более грубой агрегации данных."
+            "The S parameter defines the number of symbols used for "
+            "time-series discretization. "
+            "Increasing S provides a more detailed representation, "
+            "while decreasing it produces a coarser aggregation."
         ),
     )
 
 st.info(
-    "Требования к файлу:\n"
-    "- Формат: CSV\n"
-    "- Обязательные столбцы: `begin` (дата) и `close` (цена)\n"
-    "- Данные должны идти по времени от старых к новым\n"
-    "- Желательно 300+ строк данных\n"
+    "File Requirements:\n"
+    "- Format: CSV\n"
+    "- Required columns: `begin` (date) and `close` (price)\n"
+    "- Data should be ordered from oldest to newest\n"
+    "- At least 300 rows are recommended\n"
 )
 
 st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
 
-st.markdown("### Загрузка файла")
-st.caption("Перетащите CSV-файл в область ниже или нажмите кнопку для выбора")
+st.markdown("### Upload Dataset")
+st.caption("Drag and drop a CSV file below or click to browse")
 
 st.markdown("""
 <style>
@@ -473,7 +473,7 @@ if uploaded is None:
 try:
     raw = read_uploaded_csv(uploaded, st.session_state["sep"])
 
-    st.subheader("Предпросмотр данных")
+    st.subheader("Data Preview")
     st.dataframe(raw.head(20), use_container_width=True)
 
     window = INTERNAL_WINDOW
@@ -482,17 +482,17 @@ try:
     forecast_days = int(st.session_state["forecast_days"])
 
     df = preprocess_df(raw, window_min=window + forecast_days + 5, forecast_days=forecast_days)
-    st.success(f"Данные предобработаны. Строк после обработки: {len(df)}")
+    st.success(f"Data preprocessing completed. Rows after processing: {len(df)}")
 
-    st.subheader("График временного ряда цены закрытия")
+    st.subheader("Closing Price Time Series")
     plot_df = df[["begin", "close"]].copy().set_index("begin")
     st.line_chart(plot_df)
-    st.caption(f"Последняя дата: {df['begin'].iloc[-1]} | close: {df['close'].iloc[-1]:.6f}")
+    st.caption(f"Last date: {df['begin'].iloc[-1]} | close: {df['close'].iloc[-1]:.6f}")
 
     mode = st.session_state["mode"]
     preset = STRICTNESS_PRESETS[mode]
 
-    st.subheader("Оценка качества прогнозирования")
+    st.subheader("Forecast Evaluation")
 
     results = []
 
@@ -562,35 +562,35 @@ try:
 
     col1, col2 = st.columns(2)
     col1.metric(
-        "Точность прогнозов BUY",
+        "BUY Accuracy",
         f"{buy_acc:.3f}" if pd.notna(buy_acc) else "—"
     )
     col2.metric(
-        "Точность прогнозов SELL",
+        "SELL Accuracy",
         f"{sell_acc:.3f}" if pd.notna(sell_acc) else "—"
     )
 
     col3, col4 = st.columns(2)
     col3.metric(
-        "Точность по направленным сигналам (BUY/SELL)",
+        "Directional Accuracy (BUY/SELL)",
         f"{accuracy_dir:.3f}" if pd.notna(accuracy_dir) else "—"
     )
     col4.metric(
-        "Общая точность (включая HOLD)",
+        "Overall Accuracy (including HOLD)",
         f"{accuracy_all:.3f}" if pd.notna(accuracy_all) else "—"
     )
 
     col5, col6 = st.columns(2)
     col5.metric(
-        "Доля сигналов HOLD",
+        "HOLD Ratio",
         f"{hold_ratio:.3f}" if pd.notna(hold_ratio) else "—"
     )
     col6.metric(
-        "Средняя доходность стратегии (%)",
+        "Average Strategy Return (%)",
         f"{avg_strategy_ret * 100:.2f}%" if pd.notna(avg_strategy_ret) else "—"
     )
 
-    st.subheader("Распределение сигналов")
+    st.subheader("Signal Distribution")
     import matplotlib.pyplot as plt
 
     counts = res_df["action"].value_counts()
@@ -599,8 +599,8 @@ try:
 
     fig, ax = plt.subplots(figsize=(9, 6))
     ax.bar(counts.index, counts.values, color="#1f77b4", width=0.5)
-    ax.set_xlabel("Тип сигнала", fontsize=19)
-    ax.set_ylabel("Количество сигналов", fontsize=19)
+    ax.set_xlabel("Signal Type", fontsize=19)
+    ax.set_ylabel("Number of Signals", fontsize=19)
     ax.tick_params(axis="x", labelsize=15)
     ax.tick_params(axis="y", labelsize=14)
     ax.grid(axis="y", linestyle="--", alpha=0.4)
@@ -622,13 +622,13 @@ try:
         min_count=preset["min_count"],
     )
 
-    st.subheader(f"Главная рекомендация (горизонт: {forecast_days} дн.)")
+    st.subheader(f"Trading Recommendation (horizon: {forecast_days} days)")
     render_action_badge(action)
-    st.caption(f"Режим: **{mode}** | Шаблон: **{current_ctx}** | Правило: **{chosen_rule or '—'}**")
+    st.caption(f"Mode: **{mode}** | Current pattern: **{current_ctx}** | Rule: **{chosen_rule or '—'}**")
 
-    st.subheader("Кандидаты правил для текущего шаблона (в выбранном режиме)")
+    st.subheader("Candidate Rules for the Current Pattern")
     if candidates is None or candidates.empty:
-        st.write("Нет правил под текущий шаблон. Попробуйте «Мягко» или уменьшите K/ALPHABET_SIZE.")
+        st.write("No rules found for the current pattern. Try the Relaxed mode or reduce K/ALPHABET_SIZE.")
     else:
         cols = [
             "rule", "count", "support", "confidence", "lift",
@@ -638,7 +638,7 @@ try:
         st.dataframe(candidates[cols].head(50), use_container_width=True)
 
     st.divider()
-    st.subheader("20 ассоциативных правил")
+    st.subheader("Top 20 Association Rules")
 
     all_rules = build_rules_for_df(
         df=df,
@@ -650,7 +650,7 @@ try:
     )
 
     if all_rules.empty:
-        st.warning("Правила не найдены при текущих настройках. Попробуйте режим «Мягко» или уменьшите K.")
+        st.warning("No rules were found with the current settings. Try the Relaxed mode or reduce K.")
         st.stop()
 
     all_rules["abs_exp_ret"] = all_rules["exp_ret"].abs()
@@ -666,7 +666,7 @@ try:
         use_container_width=True,
     )
 
-    st.subheader("20 уникальных ассоциативных правил")
+    st.subheader("Top 20 Unique Association Rules")
     top20_unique = (
         all_rules.sort_values(
             ["score", "abs_exp_ret", "lift", "confidence"],
@@ -684,4 +684,4 @@ try:
     )
 
 except Exception as e:
-    st.error(f"Ошибка обработки файла: {e}")
+    st.error(f"File processing error: {e}")
